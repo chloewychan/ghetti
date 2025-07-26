@@ -1,0 +1,1 @@
+export { ChordSchema, SongSchema, type Chord, type Song } from '../../../../backend/src/schemas/index.js';
