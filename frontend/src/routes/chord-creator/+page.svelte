@@ -1,3 +1,4 @@
+// Main starting page of the app
 <script lang="ts">
     // 6 strings, 5 frets
     let grid = Array.from({ length: 6 }, () => Array(5).fill(false));
