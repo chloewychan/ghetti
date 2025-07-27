@@ -27,6 +27,8 @@
         </div>
         {/each}
 </div>
+
+<button class="chord-button">Save</button>
   
 <style>
     .chord-diagram {
