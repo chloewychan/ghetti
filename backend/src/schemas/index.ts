@@ -1,20 +1,20 @@
-import { z } from 'zod';
+import { t, Static } from 'elysia';
 
-export const ChordSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(1),
-  fingering: z.array(z.number()),
-  frets: z.number().min(1),
-  notes: z.array(z.string())
+export const ChordSchema = t.Object({
+  id: t.Optional(t.Number()),
+  name: t.String({ minLength: 1 }),
+  fingering: t.Array(t.Number()),
+  frets: t.Number({ minimum: 1 }),
+  notes: t.Array(t.String())
 });
 
-export const SongSchema = z.object({
-  id: z.number().optional(),
-  title: z.string().min(1),
-  chordIds: z.array(z.number()),
-  structure: z.string(),
-  lyrics: z.string().optional()
+export const SongSchema = t.Object({
+  id: t.Optional(t.Number()),
+  title: t.String({ minLength: 1 }),
+  chordIds: t.Array(t.Number()),
+  structure: t.String(),
+  lyrics: t.Optional(t.String())
 });
 
-export type Chord = z.infer<typeof ChordSchema>;
-export type Song = z.infer<typeof SongSchema>;
+export type Chord = Static<typeof ChordSchema>;
+export type Song = Static<typeof SongSchema>;

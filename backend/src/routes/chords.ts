@@ -1,62 +1,138 @@
-import { Router } from 'express';
+import { Elysia, t } from 'elysia';
 import { db } from '../db/index.js';
 import { chords } from '../db/schema.js';
 import { ChordSchema } from '../schemas/index.js';
 import { eq } from 'drizzle-orm';
 
-export const chordRouter = Router();
-
-chordRouter.post('/', async (req, res) => {
-  try {
-    const chord = ChordSchema.parse(req.body);
-    const result = await db.insert(chords).values({
-      name: chord.name,
-      fingering: JSON.stringify(chord.fingering),
-      frets: chord.frets,
-      notes: JSON.stringify(chord.notes)
-    }).returning();
-    
-    res.json({
-      ...result[0],
-      fingering: JSON.parse(result[0].fingering),
-      notes: JSON.parse(result[0].notes)
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      res.status(400).json({ error: error.message });
+export const chordRoutes = new Elysia({ prefix: '/api/chords' })
+  .post('/', async ({ body, set }) => {
+    try {
+      const result = await db.insert(chords).values({
+        name: body.name,
+        fingering: JSON.stringify(body.fingering),
+        frets: body.frets,
+        notes: JSON.stringify(body.notes)
+      }).returning();
+      
+      return {
+        ...result[0],
+        fingering: JSON.parse(result[0].fingering),
+        notes: JSON.parse(result[0].notes)
+      };
+    } catch (error) {
+      set.status = 400;
+      return { error: error instanceof Error ? error.message : 'Failed to create chord' };
     }
-  }
-});
-
-chordRouter.get('/', async (req, res) => {
-  try {
-    const allChords = await db.select().from(chords);
-    const parsed = allChords.map(chord => ({
-      ...chord,
-      fingering: JSON.parse(chord.fingering),
-      notes: JSON.parse(chord.notes)
-    }));
-    res.json(parsed);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch chords' });
-  }
-});
-
-chordRouter.get('/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const chord = await db.select().from(chords).where(eq(chords.id, id)).limit(1);
-    
-    if (chord.length === 0) {
-      return res.status(404).json({ error: 'Chord not found' });
+  }, {
+    body: ChordSchema,
+    detail: {
+      summary: 'Create a new chord',
+      tags: ['Chords']
     }
-    
-    res.json({
-      ...chord[0],
-      fingering: JSON.parse(chord[0].fingering),
-      notes: JSON.parse(chord[0].notes)
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch chord' });
-  }
-});
+  })
+  .get('/', async () => {
+    try {
+      const allChords = await db.select().from(chords);
+      return allChords.map(chord => ({
+        ...chord,
+        fingering: JSON.parse(chord.fingering),
+        notes: JSON.parse(chord.notes)
+      }));
+    } catch (error) {
+      return { error: 'Failed to fetch chords' };
+    }
+  }, {
+    detail: {
+      summary: 'Get all chords',
+      tags: ['Chords']
+    }
+  })
+  .get('/:id', async ({ params, set }) => {
+    try {
+      const id = parseInt(params.id);
+      const chord = await db.select().from(chords).where(eq(chords.id, id)).limit(1);
+      
+      if (chord.length === 0) {
+        set.status = 404;
+        return { error: 'Chord not found' };
+      }
+      
+      return {
+        ...chord[0],
+        fingering: JSON.parse(chord[0].fingering),
+        notes: JSON.parse(chord[0].notes)
+      };
+    } catch (error) {
+      set.status = 500;
+      return { error: 'Failed to fetch chord' };
+    }
+  }, {
+    params: t.Object({
+      id: t.String()
+    }),
+    detail: {
+      summary: 'Get chord by ID',
+      tags: ['Chords']
+    }
+  })
+  .put('/:id', async ({ params, body, set }) => {
+    try {
+      const id = parseInt(params.id);
+      const result = await db.update(chords)
+        .set({
+          name: body.name,
+          fingering: JSON.stringify(body.fingering),
+          frets: body.frets,
+          notes: JSON.stringify(body.notes)
+        })
+        .where(eq(chords.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        set.status = 404;
+        return { error: 'Chord not found' };
+      }
+      
+      return {
+        ...result[0],
+        fingering: JSON.parse(result[0].fingering),
+        notes: JSON.parse(result[0].notes)
+      };
+    } catch (error) {
+      set.status = 400;
+      return { error: error instanceof Error ? error.message : 'Failed to update chord' };
+    }
+  }, {
+    params: t.Object({
+      id: t.String()
+    }),
+    body: ChordSchema,
+    detail: {
+      summary: 'Update chord by ID',
+      tags: ['Chords']
+    }
+  })
+  .delete('/:id', async ({ params, set }) => {
+    try {
+      const id = parseInt(params.id);
+      const result = await db.delete(chords).where(eq(chords.id, id)).returning();
+      
+      if (result.length === 0) {
+        set.status = 404;
+        return { error: 'Chord not found' };
+      }
+      
+      return { message: 'Chord deleted successfully' };
+    } catch (error) {
+      set.status = 500;
+      return { error: 'Failed to delete chord' };
+    }
+  }, {
+    params: t.Object({
+      id: t.String()
+    }),
+    detail: {
+      summary: 'Delete chord by ID',
+      tags: ['Chords']
+    }
+  });

@@ -1,19 +1,26 @@
-import express from 'express';
-import cors from 'cors';
-import { chordRouter } from './routes/chords.js';
+import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
+import { swagger } from '@elysiajs/swagger';
+import { node } from '@elysiajs/node';
+import { chordRoutes } from './routes/chords.js';
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
+const app = new Elysia({ 
+  adapter: node() 
+})
+  .use(cors())
+  .use(swagger({
+    documentation: {
+      info: {
+        title: 'Ghetti API',
+        version: '1.0.0',
+        description: 'API for chord and song management'
+      }
+    }
+  }))
+  .get('/health', () => ({ status: 'ok' }))
+  .use(chordRoutes)
+  .listen(PORT);
 
-app.use('/api/chords', chordRouter);
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+console.log(`🦊 Elysia is running at http://localhost:${PORT}`);
